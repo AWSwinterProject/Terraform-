@@ -1,5 +1,5 @@
 module "vpc" {
-  source = "../../modules/network"
+  source = "../modules/network"
 
   # 변수 전달 (각자의 환경에 맞는 변수명을 사용하세요)
   region                   = "ap-northeast-2"

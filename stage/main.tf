@@ -1,3 +1,18 @@
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-northeast-2"
+}
+
 module "vpc" {
   source = "../modules/network"
 
@@ -10,3 +25,8 @@ module "vpc" {
   private_db_subnet_cidrs  = ["10.0.21.0/24", "10.0.22.0/24"]
 }
 
+
+module "service"{
+
+  source = "../modules/service"
+}

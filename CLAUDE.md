@@ -4,58 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Terraform infrastructure project for AWS (ap-northeast-2 region) named "coreon". Deploys a multi-tier VPC architecture with Lambda-based PDF processing.
+Terraform infrastructure project for AWS (ap-northeast-2, Seoul) named "coreon". Deploys a multi-tier VPC, Lambda-based PDF summarization via Bedrock, ECR repositories, and ECS services for a microservice-based intranet application.
 
 ## Common Commands
 
+All Terraform commands must be run from the `stage/` directory:
+
 ```bash
-# Initialize Terraform (run from stage/ directory)
 cd stage && terraform init
-
-# Validate configuration
-terraform validate
-
-# Plan changes
-terraform plan
-
-# Apply changes
-terraform apply
-
-# Format code
-terraform fmt -recursive
+cd stage && terraform validate
+cd stage && terraform plan
+cd stage && terraform apply
+cd stage && terraform fmt -recursive ..
 ```
 
 ## Architecture
 
-### Directory Structure
-- `stage/` - Environment configuration (entry point), references modules
-- `modules/network/` - VPC module with 3-tier subnet architecture
-- `modules/service/` - Lambda function for S3-triggered PDF processing
+### Entry Point
 
-### Network Module (`modules/network/`)
-Creates a VPC with:
-- Public subnets (internet-facing via IGW)
-- Private app subnets (for application workloads)
-- Private DB subnets (for databases)
-- Separate route tables for public/private traffic
+`stage/main.tf` is the root configuration. It instantiates modules via relative paths (`source = "../modules/<name>"`), sets the AWS provider to ap-northeast-2, and passes variables (VPC CIDR, AZs, subnet CIDRs) to each module.
 
-All resources are tagged with Project, Environment, and ManagedBy tags.
+### Modules
 
-### Service Module (`modules/service/`)
-- Lambda function triggered by S3 uploads to `coreon` bucket
-- Monitors `board/` prefix for PDF files
-- Requires `lambda_function.zip` deployment package
+**`modules/network/`** — VPC with 3-tier subnet architecture (public, private-app, private-db) across 2 AZs (ap-northeast-2a, 2c). Uses `count` based on `length(var.azs)` for subnet creation. Public subnets route through an IGW; private subnets share a separate route table. VPC CIDR: `10.0.0.0/16`.
 
-### Module Usage
-Modules are referenced via relative paths from stage/:
-```hcl
-module "vpc" {
-  source = "../modules/network"
-  # ...variables...
-}
-```
+**`modules/Bedrock/`** — Lambda function (`coreon-pdf-summarizer`, Node.js 18.x) triggered by S3 ObjectCreated events on the `coreon` bucket under `board/*.pdf`. Reads PDFs, sends to Bedrock Claude model for Korean-language summarization, writes JSON results to `summary/` prefix. Deployment package built via `archive_file` data source from `src/` directory. IAM role grants S3 read/write, Bedrock invoke, and CloudWatch Logs access.
+
+**`modules/ECR/`** — 8 ECR repositories (auth, board, member, notice, faq, nginx, front, redis) created via `for_each`. Each has a lifecycle policy keeping the latest 10 images.
+
+**`modules/ECS/`** — ECS cluster (`coreon-intranet-cluster`) with 8 task definitions/services for the microservice apps. Uses `awsvpc` network mode with Service Connect (namespace: `coreon.local`). Port mapping: nginx:80, redis:6379, front:5500, auth:8081, member:8082, faq:8083, board:8084, notice:8085. **Note:** This module references `aws_autoscaling_group.ecs_asg` and `aws_security_group.ecs_tasks_sg` that are not yet defined, and is not yet instantiated in `stage/main.tf`.
+
+### Conventions
+
+- Naming: `${project}-${environment}-${resource}` (e.g., `coreon-dev-vpc`)
+- Tagging: All resources get `Project`, `Environment`, `ManagedBy` tags via locals
+- State: Local backend in `stage/` (terraform.tfstate)
 
 ## Requirements
 
 - Terraform >= 1.6.0
-- AWS Provider ~> 5.0
+- AWS Provider ~> 5.0 (locked to 5.100.0)

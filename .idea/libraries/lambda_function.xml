@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="lambda_function">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/modules/service/lambda_function.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

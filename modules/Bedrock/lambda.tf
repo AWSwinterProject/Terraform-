@@ -31,7 +31,7 @@ resource "aws_lambda_function" "pdf_processor" {
 
   environment {
     variables = {
-      BEDROCK_MODEL_ID = "arn:aws:bedrock:ap-northeast-2:390403881443:inference-profile/apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+      BEDROCK_MODEL_ID = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
     }
   }
 }

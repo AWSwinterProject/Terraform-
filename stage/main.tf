@@ -26,7 +26,15 @@ module "vpc" {
 }
 
 
-module "service"{
+module "bedrock" {
+  source = "../modules/Bedrock"
 
-  source = "../modules/service"
+  vpc_id                 = module.vpc.vpc_id
+  private_app_subnet_ids = module.vpc.private_app_subnet_ids
+}
+
+
+module "ECR" {
+  source = "../modules/ECR"
+
 }

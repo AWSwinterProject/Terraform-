@@ -29,6 +29,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 
 # S3 및 Bedrock 권한 정책
+# S3, Bedrock 및 Marketplace 권한 정책
 resource "aws_iam_role_policy" "lambda_s3_bedrock" {
   name = "coreon-pdf-processor-policy"
   role = aws_iam_role.lambda_exec.id
@@ -56,9 +57,19 @@ resource "aws_iam_role_policy" "lambda_s3_bedrock" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
-          "arn:aws:bedrock:ap-northeast-2:390403881443:inference-profile/apac.anthropic.claude-3-5-sonnet-20240620-v1:0",
-          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0"
+          "arn:aws:bedrock:*:*:foundation-model/*",
+          "arn:aws:bedrock:*:390403881443:inference-profile/*"
         ]
+      },
+      # 💡 아래 Marketplace 권한이 추가되어야 에러가 해결됩니다.
+      {
+        Sid    = "MarketplaceAccess"
+        Effect = "Allow"
+        Action = [
+          "aws-marketplace:ViewSubscriptions",
+          "aws-marketplace:Subscribe"
+        ]
+        Resource = "*"
       }
     ]
   })

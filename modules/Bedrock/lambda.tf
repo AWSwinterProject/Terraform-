@@ -31,7 +31,7 @@ resource "aws_lambda_function" "pdf_processor" {
 
   environment {
     variables = {
-      BEDROCK_MODEL_ID = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+      BEDROCK_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
     }
   }
 }

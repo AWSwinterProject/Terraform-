@@ -57,8 +57,16 @@ resource "aws_iam_role_policy" "lambda_s3_bedrock" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
-          "arn:aws:bedrock:*:*:foundation-model/*",
-          "arn:aws:bedrock:*:390403881443:inference-profile/*"
+          # 1. 로그에서 거부된 기초 모델 경로 (리전/계정번호 없음)
+          "arn:aws:bedrock:::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          # 2. 이미지 속 공식 인퍼런스 프로파일 경로 (us-east-1 기반)
+          "arn:aws:bedrock:us-east-1:390403881443:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0",
+          # 3. 서울 리전에서 호출을 인식하기 위한 경로
+          "arn:aws:bedrock:ap-northeast-2:390403881443:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0",
+          # 4. 안전한 작동을 위한 와일드카드 추가 (권장) 해당 권한 추가 결과 인식성공
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5*",
+          "arn:aws:bedrock:*:390403881443:inference-profile/global.*"
+
         ]
       },
       # 💡 아래 Marketplace 권한이 추가되어야 에러가 해결됩니다.

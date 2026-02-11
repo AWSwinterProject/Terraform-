@@ -36,6 +36,22 @@ locals {
     "board"  = { port = 8084, cpu = 128, mem = 200 }
     "notice" = { port = 8085, cpu = 128, mem = 200 }
   }
+
+  db_apps = toset(["auth", "member", "faq", "board", "notice"])
+
+  aws_env = [
+    { name = "AWS_ACCESS_KEY_ID", value = var.aws_access_key },
+    { name = "AWS_SECRET_ACCESS_KEY", value = var.aws_secret_key },
+    { name = "AWS_REGION", value = "ap-northeast-2" }
+  ]
+
+  db_env = [
+    { name = "DB_NAME", value = var.db_name },
+    { name = "DB_ADDRESS", value = var.db_address },
+    { name = "DB_USERNAME", value = var.db_username },
+    { name = "DB_PASSWORD", value = var.db_password },
+    { name = "DB_PORT", value = "3306" }
+  ]
 }
 
 # ─── ECS Task Execution Role (ECR pull + CloudWatch Logs) ─────────
@@ -119,20 +135,23 @@ resource "aws_ecs_task_definition" "coreon_tasks" {
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
-    {
-      name      = each.key
-      image     = "${var.ecr_url}/coreon-${each.key}:latest"
-      essential = true
-      portMappings = [{ containerPort = each.value.port, hostPort = each.value.port }]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = "/ecs/coreon"
-          "awslogs-region"        = "ap-northeast-2"
-          "awslogs-stream-prefix" = each.key
+    merge(
+      {
+        name      = each.key
+        image     = "${var.ecr_url}/coreon-${each.key}:latest"
+        essential = true
+        portMappings = [{ containerPort = each.value.port, hostPort = each.value.port }]
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            "awslogs-group"         = "/ecs/coreon"
+            "awslogs-region"        = "ap-northeast-2"
+            "awslogs-stream-prefix" = each.key
+          }
         }
-      }
-    }
+      },
+      { environment = contains(local.db_apps, each.key) ? concat(local.aws_env, local.db_env) : local.aws_env }
+    )
   ])
 }
 

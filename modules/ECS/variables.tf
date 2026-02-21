@@ -46,3 +46,18 @@ variable "aws_secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "target_group_arns" {
+  description = "서비스별 ALB Target Group ARN 맵 (front, auth, member, faq, board, notice)"
+  type        = map(string)
+}
+
+variable "alb_sg_id" {
+  description = "ALB Security Group ID (ECS SG 인그레스 허용용)"
+  type        = string
+}
+
+variable "ec2_key_name" {
+  description = "EC2 SSH 키 페어 이름 (natvpn.pem)"
+  type        = string
+}

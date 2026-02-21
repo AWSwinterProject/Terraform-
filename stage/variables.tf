@@ -35,3 +35,8 @@ variable "aws_secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "ec2_key_name" {
+  description = "EC2 SSH 키 페어 이름 (natvpn.pem)"
+  type        = string
+}

@@ -1,6 +1,37 @@
-resource "aws_security_group" "client_vpn_sg" {
-  name   = "${var.project}-${var.env}-client-vpn-sg"
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+resource "aws_security_group" "vpn_sg" {
+  name   = "${var.project}-${var.env}-vpn-sg"
   vpc_id = var.vpc_id
+
+  ingress {
+    description = "WireGuard"
+    from_port   = 51820
+    to_port     = 51820
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
@@ -8,47 +39,39 @@ resource "aws_security_group" "client_vpn_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
 
-resource "aws_ec2_client_vpn_endpoint" "this" {
-  description            = "${var.project}-${var.env}-client-vpn"
-  vpc_id                 = var.vpc_id
-  client_cidr_block      = var.client_vpn_cidr
-  server_certificate_arn = var.vpn_server_cert_arn
-
-  split_tunnel = true
-
-  security_group_ids = [aws_security_group.client_vpn_sg.id]
-
-  authentication_options {
-    type = "certificate-authentication"
-    root_certificate_chain_arn = var.client_vpn_ca_cert_arn
-  }
-
-  connection_log_options {
-    enabled = false
+  tags = {
+    Name        = "${var.project}-${var.env}-vpn-sg"
+    Project     = var.project
+    Environment = var.env
+    ManagedBy   = "terraform"
   }
 }
 
-# VPC 연결(Private APP subnet 2개 연결)
-resource "aws_ec2_client_vpn_network_association" "private_app" {
-  count                  = length(var.private_app_subnet_ids)
-  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.this.id
-  subnet_id              = var.private_app_subnet_ids[count.index]
+resource "aws_instance" "vpn" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t3.micro"
+  subnet_id                   = var.public_subnet_id
+  vpc_security_group_ids      = [aws_security_group.vpn_sg.id]
+  key_name                    = var.key_name
+  source_dest_check           = false
+
+  tags = {
+    Name        = "${var.project}-${var.env}-vpn"
+    Project     = var.project
+    Environment = var.env
+    ManagedBy   = "terraform"
+  }
 }
 
+resource "aws_eip" "vpn" {
+  instance = aws_instance.vpn.id
+  domain   = "vpc"
 
-# VPN → VPC 라우트
-# resource "aws_ec2_client_vpn_route" "to_app" {
-#   client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.this.id
-#   destination_cidr_block = "10.0.0.0/16"
-#   target_vpc_subnet_id   = var.private_app_subnet_ids[0]
-#
-#   depends_on = [aws_ec2_client_vpn_network_association.private_app]
-# }
-# 접근 허용(앱에만 접근할 수 있도록)
-resource "aws_ec2_client_vpn_authorization_rule" "allow_app" {
-  client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.this.id
-  target_network_cidr    = "10.0.0.0/16"
-  authorize_all_groups   = true
+  tags = {
+    Name        = "${var.project}-${var.env}-vpn-eip"
+    Project     = var.project
+    Environment = var.env
+    ManagedBy   = "terraform"
+  }
 }

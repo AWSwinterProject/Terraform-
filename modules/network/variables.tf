@@ -31,7 +31,7 @@ variable "azs" {
 variable "public_subnet_cidrs" {
   description = "Public subnet CIDRs"
   type        = list(string)
-  default     = ["10.10.10.0/24", "10.10.11.0/24"]
+  default     = ["10.10.10.0/24"]
 }
 
 variable "private_app_subnet_cidrs" {

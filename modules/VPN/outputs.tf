@@ -1,9 +1,14 @@
-output "client_vpn_endpoint_id" {
-  description = "Client VPN endpoint ID"
-  value       = aws_ec2_client_vpn_endpoint.this.id
+output "vpn_instance_id" {
+  description = "VPN EC2 instance ID"
+  value       = aws_instance.vpn.id
 }
 
-output "client_vpn_sg_id" {
-  description = "Client VPN security group ID"
-  value       = aws_security_group.client_vpn_sg.id
+output "vpn_public_ip" {
+  description = "VPN Elastic IP (public)"
+  value       = aws_eip.vpn.public_ip
+}
+
+output "vpn_sg_id" {
+  description = "VPN security group ID"
+  value       = aws_security_group.vpn_sg.id
 }

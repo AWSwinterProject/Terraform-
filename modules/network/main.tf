@@ -23,7 +23,7 @@ resource "aws_vpc" "this" {
 //subnet
 
 resource "aws_subnet" "public" {
-    count = length(var.azs)
+    count = length(var.public_subnet_cidrs)
     vpc_id = aws_vpc.this.id
     availability_zone = var.azs[count.index]
     cidr_block = var.public_subnet_cidrs[count.index]
@@ -89,27 +89,35 @@ resource "aws_route" "public_internet"{
 }
 
 resource "aws_route_table_association" "public" {
-    count   = length(var.azs)
+    count   = length(var.public_subnet_cidrs)
     subnet_id = aws_subnet.public[count.index].id
     route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table" "private" {
-    vpc_id = aws_vpc.this.id
+resource "aws_route_table" "private_app" {
+  vpc_id = aws_vpc.this.id
 
-    tags=merge(local.tags, {
-        Name = "${local.name}-rt-private"
-    })
+  tags = merge(local.tags, {
+    Name = "${local.name}-rt-private-app"
+  })
+}
+
+resource "aws_route_table" "private_db" {
+  vpc_id = aws_vpc.this.id
+
+  tags = merge(local.tags, {
+    Name = "${local.name}-rt-private-db"
+  })
 }
 
 resource "aws_route_table_association" "private_app" {
   count          = length(var.azs)
   subnet_id      = aws_subnet.private_app[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private_app.id
 }
 
 resource "aws_route_table_association" "private_db" {
   count          = length(var.azs)
   subnet_id      = aws_subnet.private_db[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private_db.id
 }
